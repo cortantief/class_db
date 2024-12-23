@@ -28,5 +28,6 @@ typedef enum operation_result {
 void print_btree(const btree *tree);
 btree_node* new_node(void* data, size_t k);
 operation_result insert_data(btree* tree, void* data, size_t k);
-
+btree_node* search_node(btree* tree, size_t k);
+void print_btree_node(btree_node *node, int depth);
 #endif

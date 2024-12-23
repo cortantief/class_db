@@ -47,9 +47,25 @@ operation_result insert_data(btree* tree, void* data, size_t k) {
 			tmp = tmp->right;
 		}
 	}
-	
+	return ERROR;
 }
 
+btree_node* search_node(btree* tree, size_t k) {
+	if (k == 0)
+		return NULL;
+
+	btree_node* cnode = tree->root;
+	while (cnode != NULL) {
+		if (cnode->key == k)
+			return cnode;
+		else if (cnode->key < k)
+			cnode = cnode->left;
+		else
+			cnode = cnode->right;
+	}
+	return cnode;
+
+}
 
 void print_btree_node(btree_node *node, int depth) {
     if (node == NULL) {
@@ -61,7 +77,7 @@ void print_btree_node(btree_node *node, int depth) {
         printf("    ");
     }
 
-    printf("%zu\n", node->key);
+    printf("(key: %zu, data: %s)\n", node->key, node->data);
     print_btree_node(node->left, depth + 1);
 }
 
