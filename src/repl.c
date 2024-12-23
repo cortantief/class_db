@@ -1,8 +1,14 @@
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+// META_COMMAND DEFINITION
 
+#define EXIT_META ".exit"
+#define LIST_META ".list"
 
+// END META_COMMAND DEFINITION
 
 typedef enum {
   META_COMMAND_SUCCESS,
@@ -14,7 +20,7 @@ typedef enum { PREPARE_SUCCESS, PREPARE_UNRECOGNIZED_STATEMENT } PrepareResult;
 typedef enum { STATEMENT_INSERT, STATEMENT_SELECT } StatementType;
 
 typedef struct {
-  StatementType type;
+	StatementType type;
 } Statement;
 
 
@@ -26,18 +32,22 @@ typedef struct {
 } InputBuffer;
 
 InputBuffer* new_input_buffer() {
-  InputBuffer* input_buffer = (InputBuffer*)malloc(sizeof(InputBuffer));
-  input_buffer->buffer = NULL;
-  input_buffer->buffer_length = 0;
-  input_buffer->input_length = 0;
+	InputBuffer* input_buffer = (InputBuffer*)malloc(sizeof(InputBuffer));
+	input_buffer->buffer = NULL;
+	input_buffer->buffer_length = 0;
+	input_buffer->input_length = 0;
 
-  return input_buffer;
+	return input_buffer;
 }
 
-void print_prompt() { printf("db > "); }
-
-
-
+void print_prompt(char* selected_db) { 
+	if (selected_db == NULL) {
+		printf("db > ");
+		return;
+	}
+	printf("db [%s] > ", selected_db);
+	
+}
 
 void read_input(InputBuffer* input_buffer) {
   ssize_t bytes_read =
@@ -61,9 +71,12 @@ void close_input_buffer(InputBuffer* input_buffer) {
 
 
 MetaCommandResult do_meta_command(InputBuffer* input_buffer) {
-  if (strcmp(input_buffer->buffer, ".exit") == 0) {
+  if (strcmp(input_buffer->buffer, EXIT_META) == 0) {
     close_input_buffer(input_buffer);
     exit(EXIT_SUCCESS);
+  } else if (strcmp(input_buffer->buffer, LIST_META) == 0) {
+  	printf("LIST\n");
+	return META_COMMAND_SUCCESS;
   } else {
     //TODO  here implement handling of other input as .exit
     return META_COMMAND_UNRECOGNIZED_COMMAND;
@@ -100,14 +113,14 @@ void execute_statement(Statement* statement) {
 void repl(void){
   InputBuffer* input_buffer = new_input_buffer();
   while (true) {
-    print_prompt();
+    print_prompt(NULL);
     read_input(input_buffer);
     if (input_buffer->buffer[0] == '.') {
       switch (do_meta_command(input_buffer)) {
         case (META_COMMAND_SUCCESS):
           continue;
         case (META_COMMAND_UNRECOGNIZED_COMMAND):
-          printf("Unrecognized command '%s'\n", input_buffer->buffer);
+          fprintf(stderr, "Unrecognized command '%s'\n", input_buffer->buffer);
           continue;
       }
     }
@@ -117,7 +130,7 @@ void repl(void){
         printf("recognized statement\n");
         break;
       case (PREPARE_UNRECOGNIZED_STATEMENT):
-        printf("Unrecognized keyword at start of '%s'.\n",
+        fprintf(stderr, "Unrecognized keyword at start of '%s'.\n",
                input_buffer->buffer);
         continue;
     }
