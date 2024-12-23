@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "repl.c"
+#include "repl.h"
 #include <stdbool.h>
 #include <string.h>
 
