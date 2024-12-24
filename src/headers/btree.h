@@ -4,9 +4,26 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+// #include "table.h"
+
+enum coltype {
+	STRING,
+	INT,
+};
+
+union coldata {
+	char* str;
+    int32_t i32;
+};
+
+typedef struct {
+	enum coltype type;
+    char* name;
+} db_col;
+
 
 typedef struct btree_node {
-	void *data;
+	union coldata* data;
 	size_t key;
 	struct btree_node* left;
 	struct btree_node* right;
@@ -25,9 +42,7 @@ typedef enum operation_result {
 } operation_result;
 
 // void print_btree_node(btree_node *node, int depth);
-void print_btree(const btree *tree);
-btree_node* new_node(void* data, size_t k);
-operation_result insert_data(btree* tree, void* data, size_t k);
-btree_node* search_node(btree* tree, size_t k);
-void print_btree_node(btree_node *node, int depth);
+btree_node* new_node(union coldata* data, size_t k);
+operation_result insert_data(btree_node* tree, union coldata* data, size_t k);
+btree_node* search_node(btree_node* tree, size_t k);
 #endif

@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-btree_node* new_node(void* data, size_t k) {
+btree_node* new_node(union coldata* data, size_t k) {
 	btree_node* node;
 
 	node = malloc(sizeof(btree_node));
@@ -15,19 +15,12 @@ btree_node* new_node(void* data, size_t k) {
 	node->data = data;
 }
 
-operation_result insert_data(btree* tree, void* data, size_t k) {
+operation_result insert_data(btree_node* tree, union coldata* data, size_t k) {
 	btree_node* tmp = NULL;
-	btree_node* parent = NULL;
 	if (tree == NULL)
 		return ERROR;
 	
-	if (tree->root == NULL) {
-		if ((tree->root = new_node(data, k)) == NULL)
-			return ERROR;
-		return SUCCESS;
-	}
-
-	tmp = tree->root;
+	tmp = tree;
 	while (tmp != NULL) {
 		if (tmp->key == k) {
 			tmp->data = data;
@@ -50,11 +43,11 @@ operation_result insert_data(btree* tree, void* data, size_t k) {
 	return ERROR;
 }
 
-btree_node* search_node(btree* tree, size_t k) {
+btree_node* search_node(btree_node* tree, size_t k) {
 	if (k == 0)
 		return NULL;
 
-	btree_node* cnode = tree->root;
+	btree_node* cnode = tree;
 	while (cnode != NULL) {
 		if (cnode->key == k)
 			return cnode;
@@ -79,12 +72,4 @@ void print_btree_node(btree_node *node, int depth) {
 
     printf("(key: %zu, data: %s)\n", node->key, node->data);
     print_btree_node(node->left, depth + 1);
-}
-
-void print_btree(const btree *tree) {
-    if (tree == NULL || tree->root == NULL) {
-        printf("The tree is empty.\n");
-        return;
-    }
-    print_btree_node(tree->root, 0);
 }
