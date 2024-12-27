@@ -1,4 +1,5 @@
 #include "btree.h"
+#include "constants.h"
 #include "parser.h"
 #include "repl.h"
 #include "table.h"
@@ -19,16 +20,33 @@ void print_row(union coldata *data, db_col *cols, size_t col_size) {
     }
 }
 
+union coldata *new_coldata(char *name, int32_t age) {
+    union coldata *c = malloc(sizeof(union coldata) * 2);
+    c[0].i32 = age;
+    c[1].str = name;
+    return c;
+}
+
 int main(int argc, char *argv[], char *envp[]) {
-    char *sql = "SELECT";
+    char *sql =
+	"SELECT name,age from users where fname >= 'rober', lname = 'julien'";
+    db_col dbcols[] = {{.name = "age", .type = INT},
+		       {.name = "name", .type = STRING}};
     char *str = trim_whitespace(sql);
+    db_search_cond search_cond = NONE;
+    db_table *dbtable = new_table("hello");
+    dbtable->cols = dbcols;
+    dbtable->root = new_node(new_coldata("rachid", 23), 0);
+    insert_data(dbtable->root, new_coldata("julien", 26), 1);
+    // char *str = sql;
     bool t = false;
-    remove_spaces(str, true);
+    // remove_spaces(str, true);
     char *cols = get_from_clause(str, "SELECT", "from");
     char *table = get_from_clause(str, "from", "WHERE");
     char *cond = get_from_clause(str, "where", NULL);
-    remove_spaces(cols, false);
-    printf("'%s'\n", str);
-    printf("%s\n%s\n%s\n", cols, table, cond);
+    db_search_query **z = parse_query(cond);
+    for (size_t i = 0; z != NULL && z[i] != NULL; i++)
+	printf("table=%s | cond=%b | requ=%s\n", z[i]->table, z[i]->cond,
+	       z[i]->data.str);
     return 0;
 }
