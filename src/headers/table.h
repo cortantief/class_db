@@ -20,10 +20,15 @@ typedef enum {
 } db_search_cond;
 
 typedef struct {
-    char *table;
+    char *column;
     db_search_cond cond;
     union coldata data;
 } db_search_query;
+
+typedef struct {
+    size_t index;
+    enum coltype type;
+} db_col_index;
 
 db_table *new_table(char *name);
 db_col *new_col(char *name, enum coltype type);

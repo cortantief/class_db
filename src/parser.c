@@ -152,7 +152,7 @@ db_search_cond parse_cond(char *query, size_t *starti, size_t *endi) {
     size_t start_condi = *starti;
     size_t end_condi = *endi;
     while (query[start_condi] != '\0') {
-	if (query[start_condi] == LESS || query[start_condi] == MORE_OP ||
+	if (query[start_condi] == LESS_OP || query[start_condi] == MORE_OP ||
 	    query[start_condi] == EQUAL_OP)
 	    break;
 	start_condi++;
@@ -170,7 +170,10 @@ db_search_cond parse_cond(char *query, size_t *starti, size_t *endi) {
 	else if (query[i] == EQUAL_OP)
 	    cond |= EQUAL;
     }
-    if (!is_valid_cond(cond))
+    if (!is_valid_cond(cond)) {
+	return NONE;
+    }
+    if ((end_condi - start_condi) > 1 && query[start_condi] == EQUAL_OP)
 	return NONE;
     *starti = start_condi;
     *endi = end_condi;
@@ -185,8 +188,8 @@ db_search_query *_parse_query(char *query) {
     size_t end_condi = 0;
     char cond_char[] = {LESS_OP, MORE_OP, EQUAL_OP, '\0'};
     q->cond = parse_cond(query, &start_condi, &end_condi);
-    char *table = malloc(sizeof(char) * (start_condi + 1));
-    if (table == NULL) {
+    char *col = malloc(sizeof(char) * (start_condi + 1));
+    if (col == NULL || q->cond == NONE) {
 	free(q);
 	return NULL;
     }
@@ -194,31 +197,40 @@ db_search_query *_parse_query(char *query) {
     char *req = malloc(sizeof(char) * (strlen(query) - end_condi + 1));
     if (req == NULL) {
 	free(q);
-	free(table);
+	free(col);
 	return NULL;
     }
 
     for (size_t i = 0; i < start_condi; i++)
-	table[i] = query[i];
-    table[start_condi] = '\0';
-    trim_whitespace_inplace(table);
+	col[i] = query[i];
+    col[start_condi] = '\0';
+    trim_whitespace_inplace(col);
     for (size_t i = 0; query[end_condi + i] != '\0'; i++)
 	req[i] = query[end_condi + i];
     req[end_condi] = '\0';
     trim_whitespace_inplace(req);
 
-    if (!is_valid_column(table)) {
-	free(table);
+    if (!is_valid_column(col)) {
+	free(col);
 	free(req);
 	free(q);
 	return NULL;
     }
-
-    q->data.str = req;
-    q->table = table;
+    bool is_digit = true;
+    for (size_t i = 0; (req[i] != '\0') && is_digit; i++) {
+	if (!isdigit(req[i]))
+	    is_digit = false;
+    }
+    if (is_digit) {
+	q->data.i32 = strtol(req, NULL, 10);
+	free(req);
+    } else
+	q->data.str = req;
+    q->column = col;
 
     return q;
 }
+
 db_search_query **parse_query(char *query) {
     db_search_query **queries = NULL;
     if (query == NULL)
@@ -228,7 +240,7 @@ db_search_query **parse_query(char *query) {
 	query[i] == ',' ? counter++ : counter;
     queries = malloc(sizeof(db_search_query *) * (counter + 2));
     queries[counter + 1] = NULL;
-    char *q = strtok(query, ",");
+    char *q = strtok(query, DELIMITER);
     counter = 0;
     do {
 	if ((queries[counter++] = _parse_query(q)) == NULL) {
@@ -237,7 +249,7 @@ db_search_query **parse_query(char *query) {
 	    free(queries);
 	    return NULL;
 	}
-    } while ((q = strtok(NULL, ",")) != NULL);
+    } while ((q = strtok(NULL, DELIMITER)) != NULL);
     return queries;
 }
 

@@ -72,3 +72,4 @@ void print_btree_node(btree_node *node, int depth) {
     printf("(key: %zu, data: %s)\n", node->key, node->data[1].str);
     print_btree_node(node->left, depth + 1);
 }
+void free_node(btree_node *node) { free(node->coldata); }
