@@ -49,7 +49,9 @@ query_col **new_query_col(db_search_query **queries, db_table *table) {
     while (queries[queries_nbr] != NULL)
 	queries_nbr++;
     query_col **qcol = malloc(sizeof(query_col *) * (queries_nbr + 1));
-    for (size_t i = 0; i < queries_nbr; i++)
+    if (qcol == NULL)
+	return NULL;
+    for (size_t i = 0; i <= queries_nbr; i++)
 	qcol[i] = NULL;
     size_t qcol_index = 0;
     for (size_t i = 0; (qcol_index < queries_nbr) && (i < table->col_size);

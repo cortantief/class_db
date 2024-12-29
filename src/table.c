@@ -38,3 +38,26 @@ db_col *new_col(char *name, enum coltype type) {
     c->type = type;
     return c;
 }
+
+void free_node(btree_node *node, db_col *cols, size_t col_size) {
+    if (node == NULL)
+	return;
+    for (size_t i = 0; i < col_size; i++) {
+	if (cols[i].type == STRING)
+	    free(node->data[i].str);
+    }
+    free(node->data);
+    free_node(node->left, cols, col_size);
+    free_node(node->right, cols, col_size);
+    free(node);
+}
+
+void free_table(db_table *table) {
+    free(table->name);
+    free_node(table->root, table->cols, table->col_size);
+    for (size_t i = 0; i < table->col_size; i++) {
+	free(table->cols[i].name);
+    }
+    free(table->cols);
+    free(table);
+}

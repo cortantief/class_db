@@ -102,8 +102,11 @@ char *get_from_clause(char *str, char *start_clause, char *end_clause) {
 	return strdup(start);
     }
     char *cstr = malloc(sizeof(char) * (end - start + 1));
+    for (size_t i = 0; i < (end - start + 1); i++)
+	cstr[i] = '\0';
     for (size_t i = 0; (start + i) != end; i++)
 	cstr[i] = start[i];
+
     return cstr;
 }
 
@@ -115,7 +118,7 @@ char *trim_whitespace(const char *str) {
     char *out;
     size_t len = 0;
 
-    while (isspace((unsigned char)*str))
+    while (isspace(*str))
 	str++;
     if (*str == 0) {
 	*out = '\0';
@@ -128,8 +131,7 @@ char *trim_whitespace(const char *str) {
 	end--;
     end++;
     out_size = (end - str) < len ? (end - str) : len;
-    out = malloc(sizeof(char) * out_size);
-
+    out = malloc(sizeof(char) * (out_size + 1));
     if (out == NULL)
 	return NULL;
 
@@ -190,11 +192,13 @@ db_search_query *_parse_query(char *query) {
     q->cond = parse_cond(query, &start_condi, &end_condi);
     char *col = malloc(sizeof(char) * (start_condi + 1));
     if (col == NULL || q->cond == NONE) {
+	if (col != NULL)
+	    free(col);
 	free(q);
 	return NULL;
     }
-
-    char *req = malloc(sizeof(char) * (strlen(query) - end_condi + 1));
+    size_t req_size = strlen(query) - end_condi;
+    char *req = malloc(sizeof(char) * (req_size + 1));
     if (req == NULL) {
 	free(q);
 	free(col);
@@ -207,7 +211,7 @@ db_search_query *_parse_query(char *query) {
     trim_whitespace_inplace(col);
     for (size_t i = 0; query[end_condi + i] != '\0'; i++)
 	req[i] = query[end_condi + i];
-    req[end_condi] = '\0';
+    req[req_size] = '\0';
     trim_whitespace_inplace(req);
 
     if (!is_valid_column(col)) {

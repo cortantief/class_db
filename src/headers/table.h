@@ -32,4 +32,5 @@ typedef struct {
 
 db_table *new_table(char *name);
 db_col *new_col(char *name, enum coltype type);
+void free_table(db_table *table);
 #endif

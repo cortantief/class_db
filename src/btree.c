@@ -59,17 +59,3 @@ btree_node *search_node(btree_node *tree, size_t k) {
     return cnode;
 }
 
-void print_btree_node(btree_node *node, int depth) {
-    if (node == NULL) {
-	return;
-    }
-    print_btree_node(node->right, depth + 1);
-
-    for (int i = 0; i < depth; i++) {
-	printf("    ");
-    }
-
-    printf("(key: %zu, data: %s)\n", node->key, node->data[1].str);
-    print_btree_node(node->left, depth + 1);
-}
-void free_node(btree_node *node) { free(node->coldata); }
