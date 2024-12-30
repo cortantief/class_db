@@ -1,5 +1,6 @@
 #include "btree.h"
 #include "constants.h"
+#include "database.h"
 #include "parser.h"
 #include "printer.h"
 #include "query.h"
@@ -31,7 +32,7 @@ db_col_index **get_cols_index(db_table *table, char *cols) {
     do {
 	bool already_present = false;
 	for (size_t i = 0; i < table->col_size; i++) {
-	    if (strcmp(col, table->cols[i].name) == 0) {
+	    if (strcmp(col, table->cols[i]->name) == 0) {
 		for (size_t a = 0; a < coli; a++) {
 		    if (cols_index[a]->index == i) {
 			already_present = true;
@@ -48,7 +49,7 @@ db_col_index **get_cols_index(db_table *table, char *cols) {
 		    return NULL;
 		}
 		cols_index[coli]->index = i;
-		cols_index[coli]->type = table->cols[i].type;
+		cols_index[coli]->type = table->cols[i]->type;
 		coli++;
 	    }
 	}
@@ -61,29 +62,41 @@ int main(int argc, char *argv[], char *envp[]) {
     if (argc < 2)
 	return 1;
     char *sql = argv[1];
-    db_col *dbcols = malloc(sizeof(db_col) * 3);
-    dbcols[0].name = strdup("age");
-    dbcols[0].type = INT;
-    dbcols[1].name = strdup("name");
-    dbcols[1].type = STRING;
-    char *str = trim_whitespace(sql);
-    db_search_cond search_cond = NONE;
-    db_table *dbtable = new_table("hello");
-    dbtable->cols = dbcols;
-    dbtable->col_size = 2;
-    dbtable->root = new_node(new_coldata(strdup("rachid"), 23), 0);
-    insert_data(dbtable->root, new_coldata(strdup("julien"), 26), 1);
+    database *db = new_database("MY DATABASE");
+    if (db == NULL)
+	return 1;
+    if (!new_database_table(db, "users")) {
+	free_database(db);
+	return 1;
+    }
+    if (!insert_col_table(db, "users", "age", INT)) {
+	free_database(db);
+	return 1;
+    }
+    if (!insert_col_table(db, "users", "name", STRING)) {
+	free_database(db);
+	return 1;
+    }
 
-    // char *str = sql;
-    bool t = false;
+    if (!insert_data_table(db, "users", 0, new_coldata(strdup("rachid"), 23))) {
+	free_database(db);
+	return 1;
+    }
+    char *str = trim_whitespace(sql);
+    db_table *dbtable = get_table_by_name(db, "users");
     remove_spaces(str, true);
     char *cols = get_from_clause(str, SELECT_CLAUSE, FROM_CLAUSE);
     char *table = get_from_clause(str, FROM_CLAUSE, WHERE_CLAUSE);
     char *cond = get_from_clause(str, WHERE_CLAUSE, NULL);
     remove_spaces(cols, false);
     db_search_query **z = parse_query(cond);
-    if (z == NULL)
+    if (z == NULL) {
+	free(cols);
+	free(cond);
+	free(str);
+	free_database(db);
 	return 1;
+    }
     db_col_index **cols_index = get_cols_index(dbtable, cols);
     if (cols_index == NULL)
 	return 1;
@@ -91,7 +104,6 @@ int main(int argc, char *argv[], char *envp[]) {
     print_table(dbtable, c, cols_index);
     free(cols);
     free(table);
-
     free(cond);
     free(str);
     for (size_t i = 0; cols_index[i] != NULL; i++)
@@ -106,6 +118,6 @@ int main(int argc, char *argv[], char *envp[]) {
 	free(z[i]);
     };
     free(z);
-    free_table(dbtable);
+    free_database(db);
     return 0;
 }

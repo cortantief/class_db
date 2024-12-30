@@ -5,7 +5,7 @@
 
 typedef struct {
     char *name;
-    db_col *cols;
+    db_col **cols;
     size_t col_size;
     size_t row_size;
     btree_node *root;
@@ -33,4 +33,5 @@ typedef struct {
 db_table *new_table(char *name);
 db_col *new_col(char *name, enum coltype type);
 void free_table(db_table *table);
+void free_node(btree_node *node, db_col **cols, size_t col_size);
 #endif

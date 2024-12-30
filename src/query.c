@@ -57,9 +57,9 @@ query_col **new_query_col(db_search_query **queries, db_table *table) {
     for (size_t i = 0; (qcol_index < queries_nbr) && (i < table->col_size);
 	 i++) {
 	for (size_t a = 0; a < queries_nbr; a++) {
-	    if (strcmp(queries[a]->column, table->cols[i].name) == 0) {
+	    if (strcmp(queries[a]->column, table->cols[i]->name) == 0) {
 		qcol[qcol_index++] =
-		    new_qcol(queries[a], table->cols[i].type, i);
+		    new_qcol(queries[a], table->cols[i]->type, i);
 		break;
 	    }
 	}

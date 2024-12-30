@@ -23,7 +23,7 @@ void print_header(db_table *table, db_col_index **cols_index) {
     print_horizontal_line(cols_index);
     for (int i = 0; (cols_index[i] != NULL); i++) {
 	printf("| %-*s", MAX_COLUMN_WIDTH - 1,
-	       table->cols[cols_index[i]->index].name);
+	       table->cols[cols_index[i]->index]->name);
     }
     printf("|\n");
     print_horizontal_line(cols_index);
