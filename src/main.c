@@ -19,46 +19,7 @@ union coldata *new_coldata(char *name, int32_t age) {
     return c;
 }
 
-db_col_index **get_cols_index(db_table *table, char *cols) {
-    char *columns = strdup(cols);
-    char *col = strtok(columns, DELIMITER);
-    db_col_index **cols_index =
-	malloc(sizeof(db_col_index *) * (table->col_size + 1));
-    if (cols_index == NULL)
-	return NULL;
-    for (size_t i = 0; i <= table->col_size; i++)
-	cols_index[i] = NULL;
-    size_t coli = 0;
-    do {
-	bool already_present = false;
-	for (size_t i = 0; i < table->col_size; i++) {
-	    if (strcmp(col, table->cols[i]->name) == 0) {
-		for (size_t a = 0; a < coli; a++) {
-		    if (cols_index[a]->index == i) {
-			already_present = true;
-			break;
-		    }
-		}
-		if (already_present)
-		    break;
-		cols_index[coli] = malloc(sizeof(db_col_index));
-		if (cols_index[coli] == NULL) {
-		    for (size_t b = 0; b < coli; b++)
-			free(cols_index[b]);
-		    free(cols_index);
-		    return NULL;
-		}
-		cols_index[coli]->index = i;
-		cols_index[coli]->type = table->cols[i]->type;
-		coli++;
-	    }
-	}
-    } while ((col = strtok(NULL, DELIMITER)) != NULL);
-    free(columns);
-    return cols_index;
-}
-
-int main(int argc, char *argv[], char *envp[]) {
+int main(int argc, char *argv[]) {
     if (argc < 2)
 	return 1;
     char *sql = argv[1];
@@ -88,11 +49,13 @@ int main(int argc, char *argv[], char *envp[]) {
     char *cols = get_from_clause(str, SELECT_CLAUSE, FROM_CLAUSE);
     char *table = get_from_clause(str, FROM_CLAUSE, WHERE_CLAUSE);
     char *cond = get_from_clause(str, WHERE_CLAUSE, NULL);
+    printf("%p\n", cond);
     remove_spaces(cols, false);
     db_search_query **z = parse_query(cond);
     if (z == NULL) {
 	free(cols);
-	free(cond);
+	if (cond != NULL)
+		free(cond);
 	free(str);
 	free_database(db);
 	return 1;

@@ -80,6 +80,7 @@ bool free_database(database *db) {
 	free_table(db->tables[i]);
     free(db->tables);
     free(db);
+    return true;
 }
 
 bool insert_col_table(database *db, char *table_name, char *col_name,

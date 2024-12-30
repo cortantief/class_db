@@ -11,4 +11,5 @@ char *get_from_clause(char *str, char *start_clause, char *end_clause);
 void remove_spaces(char *str, bool duplicate_only);
 char *trim_whitespace(const char *str);
 db_search_query **parse_query(char *query);
+db_col_index **get_cols_index(db_table *table, char *cols);
 #endif

@@ -15,6 +15,7 @@ btree_node *new_node(union coldata *data, size_t k) {
     node->left = NULL;
     node->right = NULL;
     node->data = data;
+    return node;
 }
 
 operation_result insert_data(btree_node *tree, union coldata *data, size_t k) {
