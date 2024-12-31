@@ -48,11 +48,14 @@ void print_row(btree_node *node, db_col_index **cols_index) {
 // Finalizes the table
 
 void print_table(db_table *table, query_col **qcol, db_col_index **cols_index) {
-    if (cols_index == NULL || table == NULL || qcol == NULL)
+    if (cols_index == NULL || table == NULL)
 	return;
     print_header(table, cols_index);
     // print_row(table->root, cols_index);
-    search_by_cond(table->root, qcol, cols_index, print_row);
+    if (qcol != NULL)
+	    search_by_cond(table->root, qcol, cols_index, print_row);
+    else
+	    print_row(table->root, cols_index);
     // print_footer(table);
     // print_horizontal_line(cols_index);
 }

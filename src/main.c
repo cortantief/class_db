@@ -44,26 +44,27 @@ int main(int argc, char *argv[]) {
 	return 1;
     }
     char *str = trim_whitespace(sql);
-    db_table *dbtable = get_table_by_name(db, "users");
     remove_spaces(str, true);
     char *cols = get_from_clause(str, SELECT_CLAUSE, FROM_CLAUSE);
     char *table = get_from_clause(str, FROM_CLAUSE, WHERE_CLAUSE);
+    db_table *dbtable = get_table_by_name(db, table);
+    if (dbtable == NULL) {
+	    free(cols);
+	    free(str);
+	    free(table);
+	    free_database(db);
+	    return 1;
+    }
     char *cond = get_from_clause(str, WHERE_CLAUSE, NULL);
-    printf("%p\n", cond);
     remove_spaces(cols, false);
     db_search_query **z = parse_query(cond);
-    if (z == NULL) {
-	free(cols);
-	if (cond != NULL)
-		free(cond);
-	free(str);
-	free_database(db);
-	return 1;
-    }
     db_col_index **cols_index = get_cols_index(dbtable, cols);
+
     if (cols_index == NULL)
 	return 1;
-    query_col **c = new_query_col(z, dbtable);
+    query_col **c = NULL;
+    if (z != NULL)
+	    c = new_query_col(z, dbtable);
     print_table(dbtable, c, cols_index);
     free(cols);
     free(table);
@@ -72,11 +73,11 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; cols_index[i] != NULL; i++)
 	free(cols_index[i]);
     free(cols_index);
-    for (size_t i = 0; c[i] != NULL; i++)
+    for (size_t i = 0; c != NULL && c[i] != NULL; i++)
 	free(c[i]);
     free(c);
 
-    for (size_t i = 0; z[i] != NULL; i++) {
+    for (size_t i = 0; z != NULL && z[i] != NULL; i++) {
 	free(z[i]->column);
 	free(z[i]);
     };
