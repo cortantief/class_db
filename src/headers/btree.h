@@ -7,6 +7,7 @@
 // #include "table.h"
 
 enum coltype {
+    Nil,
     STRING,
     INT,
 };

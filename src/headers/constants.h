@@ -1,10 +1,11 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define WHERE_CLAUSE "where"
-#define SELECT_CLAUSE "SELECT"
-#define FROM_CLAUSE "from"
-#define INSERT_CLAUSE "insert"
+#define WHERE_CLAUSE " where "
+#define SELECT_CLAUSE "SELECT "
+#define FROM_CLAUSE " from "
+#define INSERT_CLAUSE "insert into "
+#define VALUES_CLAUSE " values "
 
 #define LESS_OP '<'
 #define MORE_OP '>'

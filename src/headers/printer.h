@@ -4,6 +4,6 @@
 #include "query.h"
 #include "table.h"
 
-void print_table(db_table *table, query_col **qcol, db_col_index **cols_index);
+void print_table(db_table *table, db_query *qcol);
 
 #endif

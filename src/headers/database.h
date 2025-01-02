@@ -23,4 +23,6 @@ bool insert_data_table(database *db, char *table_name, size_t key,
 database *new_database(char *name);
 bool insert_col_table(database *db, char *table_name, char *col_name,
 		      enum coltype type);
+int exec_select_query(database *db, char *sql);
+int exec_insert_query(database *db, char *sql);
 #endif

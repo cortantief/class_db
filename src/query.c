@@ -34,7 +34,7 @@ bool test_condition_str(union coldata *data, db_search_cond cond,
     return false;
 }
 
-query_col *new_qcol(db_search_query *query, enum coltype t, size_t index) {
+/*query_col *new_qcol(db_search_query *query, enum coltype t, size_t index) {
     query_col *qcol = malloc(sizeof(query_col));
     if (qcol == NULL)
 	return NULL;
@@ -57,7 +57,7 @@ query_col **new_query_col(db_search_query **queries, db_table *table) {
     for (size_t i = 0; (qcol_index < queries_nbr) && (i < table->col_size);
 	 i++) {
 	for (size_t a = 0; a < queries_nbr; a++) {
-	    if (strcmp(queries[a]->column, table->cols[i]->name) == 0) {
+	    if (queries[a]->index == i) {
 		qcol[qcol_index++] =
 		    new_qcol(queries[a], table->cols[i]->type, i);
 		break;
@@ -66,30 +66,33 @@ query_col **new_query_col(db_search_query **queries, db_table *table) {
     }
     return qcol;
 };
-
-void search_by_cond(btree_node *node, query_col **qcol,
-		    db_col_index **cols_index,
-		    void (*func)(btree_node *node, db_col_index **cols_index)) {
+*/
+void search_by_cond(btree_node *node, db_query *qcol,
+		    void (*func)(btree_node *node, db_query *qcol)) {
     if (node == NULL || qcol == NULL || func == NULL)
 	return;
-    for (size_t i = 0; qcol[i] != NULL; i++) {
-	union coldata data = node->data[qcol[i]->index];
-	switch (qcol[i]->type) {
+    if (!qcol->has_condition)
+	goto print;
+    db_search_query **q = qcol->with_cond;
+    for (size_t i = 0; q[i] != NULL; i++) {
+	union coldata data = node->data[qcol->without_cond[i]->index];
+	switch (q[i]->type) {
 	case INT:
-	    if (!test_condition_integer(&data, qcol[i]->query->cond,
-					&qcol[i]->query->data))
+	    if (!test_condition_integer(&data, q[i]->cond, &q[i]->data))
 		goto end;
 	    break;
 	case STRING:
-	    if (!test_condition_str(&data, qcol[i]->query->cond,
-				    &qcol[i]->query->data))
+	    if (!test_condition_str(&data, q[i]->cond, &q[i]->data))
 		goto end;
+	    break;
+	case Nil:
 	    break;
 	}
     }
-    func(node, cols_index);
+print:
+    func(node, qcol);
 end:
-    search_by_cond(node->left, qcol, cols_index, func);
-    search_by_cond(node->right, qcol, cols_index, func);
+    search_by_cond(node->left, qcol, func);
+    search_by_cond(node->right, qcol, func);
 }
 
