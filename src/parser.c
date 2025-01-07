@@ -415,23 +415,53 @@ char *_parse_table_definition_db_table(char *str) {
     return table_name;
 }
 
-db_col **parse_col(char **cols) { return NULL; }
+db_col **parse_col(char **cols) {
+    size_t size = 0;
+    for (; cols[size] != NULL; size++)
+	continue;
+    db_col **dbcols = calloc(size + 1, sizeof(db_col *));
+    for (size_t i = 0; i < size; i++) {
+	size_t endi = 0;
+	size_t counter = 0;
+	for (size_t len = 0; cols[i][len] != '\0'; len++) {
+	    if (cols[i][len] == ':') {
+		endi = len;
+		counter++;
+	    }
+	}
+	if (counter != 1)
+	    return NULL;
+	char *name = strndup(cols[i], endi);
+	char *type_name = (cols[i] + (sizeof(char) * (endi + 1)));
+	enum coltype type;
+	if (strcasecmp(type_name, INT_TYPE) == 0)
+	    type = STRING;
+	else if (strcasecmp(type_name, STRING_TYPE) == 0)
+	    type = INT;
+	dbcols[i] = new_col(name, type);
+    }
+    return dbcols;
+}
 db_table *parse_table_definition(char *str) {
     char *stmt = trim_whitespace(str);
     remove_spaces(stmt, true);
     char *dbdef = _parse_table_definition_db_table(stmt);
-    printf("%s\n", dbdef);
     char **cols_value = extract_all_values(stmt);
     if (cols_value == NULL)
 	return NULL;
-    printf("str=%s\n", *cols_value);
+    remove_spaces(*cols_value, false);
     char **cols = parse_columns(*cols_value);
     if (cols == NULL)
 	return NULL;
-
+    db_col **dbcols = parse_col(cols);
     for (size_t i = 0; cols_value[i] == NULL; i++)
 	free(cols_value[i]);
     for (size_t i = 0; cols[i] != NULL; i++)
 	free(cols[i]);
     free(cols);
+    db_table *table = new_table(dbdef);
+    table->cols = dbcols;
+    for (size_t i = 0; dbcols[i] != NULL; i++)
+	table->col_size++;
+    return table;
 }

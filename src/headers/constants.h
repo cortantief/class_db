@@ -13,4 +13,6 @@
 
 #define DELIMITER ","
 
+#define INT_TYPE "int"
+#define STRING_TYPE "string"
 #endif

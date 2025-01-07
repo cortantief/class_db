@@ -82,8 +82,16 @@ MetaCommandResult do_meta_command(InputBuffer *input_buffer, app_state *state) {
 	return META_COMMAND_FAILED;
     } else if (strncmp(input_buffer->buffer, CREATE_TABLE,
 		       strlen(CREATE_TABLE)) == 0) {
-	parse_table_definition(input_buffer->buffer +
-			       (sizeof(char) * strlen(CREATE_TABLE)));
+	if (state->selected_db == NULL) {
+	    printf("Please select a database\n");
+	    return META_COMMAND_FAILED;
+	}
+	db_table *table = parse_table_definition(
+	    input_buffer->buffer + (sizeof(char) * strlen(CREATE_TABLE)));
+	printf("table pointer =%p\n", table);
+	if (table == NULL)
+	    return META_COMMAND_FAILED;
+	return META_COMMAND_SUCCESS;
     }
 
     else

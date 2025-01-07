@@ -14,6 +14,6 @@ char *trim_whitespace(const char *str);
 void trim_whitespace_inplace(char *str);
 db_search_query **parse_query(db_table *dbtable, char *query);
 db_col_index **get_cols_index(db_table *table, char *cols);
-void parse_table_definition(char *str);
+db_table *parse_table_definition(char *str);
 char **extract_all_values(const char *query);
 #endif
