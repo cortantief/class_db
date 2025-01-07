@@ -6,6 +6,52 @@
 #include <stdlib.h>
 #include <string.h>
 
+char **extract_all_values(const char *query) {
+    if (!query)
+	return NULL;
+    size_t capacity = 5;
+    size_t len = 0;
+    char **values = malloc(sizeof(char *) * capacity);
+    if (values == NULL)
+	return NULL;
+
+    char *values_start = strchr(query, '(');
+    if (!values_start)
+	goto error_handling;
+
+    while (values_start) {
+	char *values_end = strchr(values_start, ')');
+	if (!values_end)
+	    goto error_handling;
+
+	size_t length = values_end - values_start - 1;
+	values[len] = malloc(sizeof(char) * (length + 1));
+	if (values[len] == NULL)
+	    goto error_handling;
+	strncpy(values[len], values_start + 1, length);
+	values[len][length] = '\0';
+	len++;
+	if (len >= capacity) {
+	    char **new_ptr = realloc(values, (capacity = capacity * 2));
+	    if (new_ptr == NULL) {
+		for (size_t i = 0; i < len; i++)
+		    free(values[i]);
+		free(values);
+		return NULL;
+	    }
+	    values = new_ptr;
+	}
+	values_start = strchr(values_end, '(');
+    }
+    return values;
+
+error_handling:
+    for (size_t i = 0; i < len; i++)
+	free(values[i]);
+    free(values);
+    return NULL;
+}
+
 bool is_valid_char(char c) { return isalnum(c) || c == '_' || c == '-'; }
 bool is_valid_column(char *str) {
     if (str == NULL)
@@ -325,4 +371,67 @@ db_col_index **get_cols_index(db_table *table, char *cols) {
     } while ((col = strtok(NULL, DELIMITER)) != NULL);
     free(columns);
     return cols_index;
+}
+
+char *_parse_table_definition_db_cols(char *str) {
+    size_t starti = 0;
+    for (size_t i = 0; str[i] != '\0'; i++) {
+	starti++;
+	if (str[i] == ' ')
+	    break;
+    }
+    size_t endi = starti + 1;
+    for (size_t i = starti; str[i] != '\0'; i++) {
+	endi++;
+	if (str[i] == ' ')
+	    break;
+    }
+    char *out = malloc(sizeof(char) * (endi - starti + 1));
+    for (size_t i = starti; i < endi; i++)
+	out[i] = str[i];
+    out[endi] = '\0';
+    return out;
+}
+
+char *_parse_table_definition_db_table(char *str) {
+    size_t endi = 0;
+    for (size_t i = 0; str[i] != '\0'; i++) {
+	endi = i;
+	if (str[i] == ' ')
+	    break;
+    }
+    if (endi == 0)
+	return NULL;
+    char *table_name = malloc(sizeof(char) * (endi + 1));
+
+    for (size_t i = 0; i < endi; i++)
+	table_name[i] = str[i];
+
+    table_name[endi] = '\0';
+    if (!is_valid_column(table_name)) {
+	free(table_name);
+	return NULL;
+    }
+    return table_name;
+}
+
+db_col **parse_col(char **cols) { return NULL; }
+db_table *parse_table_definition(char *str) {
+    char *stmt = trim_whitespace(str);
+    remove_spaces(stmt, true);
+    char *dbdef = _parse_table_definition_db_table(stmt);
+    printf("%s\n", dbdef);
+    char **cols_value = extract_all_values(stmt);
+    if (cols_value == NULL)
+	return NULL;
+    printf("str=%s\n", *cols_value);
+    char **cols = parse_columns(*cols_value);
+    if (cols == NULL)
+	return NULL;
+
+    for (size_t i = 0; cols_value[i] == NULL; i++)
+	free(cols_value[i]);
+    for (size_t i = 0; cols[i] != NULL; i++)
+	free(cols[i]);
+    free(cols);
 }

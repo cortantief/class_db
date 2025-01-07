@@ -1,3 +1,8 @@
+#include "repl.h"
+#include "constants.h"
+#include "database.h"
+#include "parser.h"
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,27 +12,12 @@
 
 #define EXIT_META ".exit"
 #define LIST_META ".list"
+#define USE_META ".use "
+#define CREATE_DB ".create_db "
+#define CREATE_TABLE ".create_table "
+#define NEW_DATABASE ""
 
 // END META_COMMAND DEFINITION
-
-typedef enum {
-    META_COMMAND_SUCCESS,
-    META_COMMAND_UNRECOGNIZED_COMMAND
-} MetaCommandResult;
-
-typedef enum { PREPARE_SUCCESS, PREPARE_UNRECOGNIZED_STATEMENT } PrepareResult;
-
-typedef enum { STATEMENT_INSERT, STATEMENT_SELECT } StatementType;
-
-typedef struct {
-    StatementType type;
-} Statement;
-
-typedef struct {
-    char *buffer;
-    size_t buffer_length;
-    ssize_t input_length;
-} InputBuffer;
 
 InputBuffer *new_input_buffer() {
     InputBuffer *input_buffer = (InputBuffer *)malloc(sizeof(InputBuffer));
@@ -38,26 +28,28 @@ InputBuffer *new_input_buffer() {
     return input_buffer;
 }
 
-void print_prompt(char *selected_db) {
+void print_prompt(database *selected_db) {
     if (selected_db == NULL) {
 	printf("db > ");
 	return;
     }
-    printf("db [%s] > ", selected_db);
+    printf("db [%s] > ", selected_db->name);
 }
 
-void read_input(InputBuffer *input_buffer) {
+ReadResult read_input(InputBuffer *input_buffer) {
     ssize_t bytes_read =
 	getline(&(input_buffer->buffer), &(input_buffer->buffer_length), stdin);
 
     if (bytes_read <= 0) {
-	printf("Error reading input\n");
-	exit(EXIT_FAILURE);
+	if (errno == 0)
+	    return READ_EOF;
+	return READ_ERROR;
     }
 
     // Ignore trailing newline
     input_buffer->input_length = bytes_read - 1;
     input_buffer->buffer[bytes_read - 1] = 0;
+    return READ_SUCCESS;
 }
 
 void close_input_buffer(InputBuffer *input_buffer) {
@@ -65,27 +57,50 @@ void close_input_buffer(InputBuffer *input_buffer) {
     free(input_buffer);
 }
 
-MetaCommandResult do_meta_command(InputBuffer *input_buffer) {
+MetaCommandResult do_meta_command(InputBuffer *input_buffer, app_state *state) {
     if (strcmp(input_buffer->buffer, EXIT_META) == 0) {
-	close_input_buffer(input_buffer);
-	exit(EXIT_SUCCESS);
+	//	close_input_buffer(input_buffer);
+	return META_COMMAND_EXIT;
     } else if (strcmp(input_buffer->buffer, LIST_META) == 0) {
-	printf("LIST\n");
+	if (state == NULL)
+	    return META_COMMAND_SUCCESS;
+	for (size_t i = 0; i < state->database_size; i++)
+	    printf("[%s]\n", state->databases[i]->name);
 	return META_COMMAND_SUCCESS;
-    } else {
-	// TODO  here implement handling of other input as .exit
-	return META_COMMAND_UNRECOGNIZED_COMMAND;
+    } else if (strncmp(input_buffer->buffer, USE_META, strlen(USE_META)) == 0) {
+	char *tmp =
+	    strdup(input_buffer->buffer + (sizeof(char) * strlen(USE_META)));
+	remove_spaces(tmp, true);
+	for (size_t i = 0; i < state->database_size; i++) {
+	    if (strcmp(state->databases[i]->name, tmp) == 0) {
+		state->selected_db = state->databases[i];
+		free(tmp);
+		return META_COMMAND_SUCCESS;
+	    }
+	}
+	free(tmp);
+	return META_COMMAND_FAILED;
+    } else if (strncmp(input_buffer->buffer, CREATE_TABLE,
+		       strlen(CREATE_TABLE)) == 0) {
+	parse_table_definition(input_buffer->buffer +
+			       (sizeof(char) * strlen(CREATE_TABLE)));
     }
+
+    else
+
+	return META_COMMAND_UNRECOGNIZED_COMMAND;
 }
 
 PrepareResult prepare_statement(InputBuffer *input_buffer,
 				Statement *statement) {
 
-    if (strncmp(input_buffer->buffer, "insert", 6) == 0) {
+    if (strncasecmp(input_buffer->buffer, INSERT_CLAUSE,
+		    strlen(INSERT_CLAUSE)) == 0) {
 	statement->type = STATEMENT_INSERT;
 	return PREPARE_SUCCESS;
     }
-    if (strcmp(input_buffer->buffer, "select") == 0) {
+    if (strncasecmp(input_buffer->buffer, SELECT_CLAUSE,
+		    strlen(SELECT_CLAUSE)) == 0) {
 	statement->type = STATEMENT_SELECT;
 	return PREPARE_SUCCESS;
     }
@@ -93,7 +108,9 @@ PrepareResult prepare_statement(InputBuffer *input_buffer,
     return PREPARE_UNRECOGNIZED_STATEMENT;
 }
 
-void execute_statement(Statement *statement) {
+void execute_statement(Statement *statement, app_state *state) {
+    if (state->selected_db == NULL)
+	return;
     switch (statement->type) {
     case (STATEMENT_INSERT):
 	// TODO Implement the command here
@@ -106,17 +123,36 @@ void execute_statement(Statement *statement) {
 
 void repl(void) {
     InputBuffer *input_buffer = new_input_buffer();
+    app_state state;
+    state.databases = NULL;
+    state.selected_db = NULL;
+
     while (true) {
-	print_prompt(NULL);
-	read_input(input_buffer);
+	print_prompt(state.selected_db);
+	switch (read_input(input_buffer)) {
+	case READ_SUCCESS:
+	    break;
+	case READ_ERROR:
+	    printf("Error Reading input\n");
+	    goto _exit;
+	case READ_EOF:
+	    printf("Goodbye\n");
+	    goto _exit;
+	}
 	if (input_buffer->buffer[0] == '.') {
-	    switch (do_meta_command(input_buffer)) {
+	    switch (do_meta_command(input_buffer, &state)) {
 	    case (META_COMMAND_SUCCESS):
 		continue;
 	    case (META_COMMAND_UNRECOGNIZED_COMMAND):
 		fprintf(stderr, "Unrecognized command '%s'\n",
 			input_buffer->buffer);
 		continue;
+	    case (META_COMMAND_FAILED):
+		fprintf(stderr, "Error with command '%s'\n",
+			input_buffer->buffer);
+		continue;
+	    case (META_COMMAND_EXIT):
+		goto _exit;
 	    }
 	}
 	Statement statement;
@@ -129,7 +165,11 @@ void repl(void) {
 		    input_buffer->buffer);
 	    continue;
 	}
-	execute_statement(&statement);
+	execute_statement(&statement, &state);
 	printf("Executed.\n");
     }
+_exit:
+    for (size_t i = 0; i < state.database_size; i++)
+	free_database(state.databases[i]);
+    free(state.databases);
 }

@@ -344,7 +344,7 @@ int exec_select_query(database *db, char *sql) {
     return 0;
 }
 
-char **extract_all_values(const char *query) {
+/*char **extract_all_values(const char *query) {
     if (!query)
 	return NULL;
     size_t capacity = 5;
@@ -389,7 +389,7 @@ error_handling:
     free(values);
     return NULL;
 }
-
+*/
 size_t count_part(char *str) {
     size_t counter = 0;
     bool in_quote = false;
