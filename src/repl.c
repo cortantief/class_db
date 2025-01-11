@@ -57,6 +57,39 @@ void close_input_buffer(InputBuffer *input_buffer) {
     free(input_buffer);
 }
 
+bool insert_database_to_state(app_state *state, char *name) {
+	database *db = new_database(name);
+	if (db == NULL)
+		return false;
+	if (state->database_size >= state->database_capacity) {
+		char *sdbname = NULL;
+		if (state->selected_db != NULL) {
+			sdbname = strdup(state->selected_db->name);
+			if (sdbname == NULL) {
+				free(db);
+				return false;
+			}
+		}
+
+		void *tmp = realloc(state->databases, (state->database_capacity * 2) * sizeof(database*));
+		if (tmp == NULL) {
+			if (sdbname != NULL)
+				free(sdbname);
+			free(db);
+			return false;
+		}
+		state->databases = tmp;
+		state->database_capacity = state->database_capacity * 2;
+		for(size_t i = 0; sdbname != NULL && i < state->database_size; i++) {
+			if (strcmp(sdbname, state->databases[i]->name) == 0) {
+				state->selected_db = state->databases[i];
+			}
+		}
+	}
+	state->databases[state->database_size++] = db;
+	return true;
+}
+
 MetaCommandResult do_meta_command(InputBuffer *input_buffer, app_state *state) {
     if (strcmp(input_buffer->buffer, EXIT_META) == 0) {
 	//	close_input_buffer(input_buffer);
@@ -92,6 +125,11 @@ MetaCommandResult do_meta_command(InputBuffer *input_buffer, app_state *state) {
 	if (table == NULL)
 	    return META_COMMAND_FAILED;
 	return META_COMMAND_SUCCESS;
+    } else if (strncmp(input_buffer->buffer, CREATE_DB, strlen(CREATE_DB)) == 0) {
+	    char *tmp = input_buffer->buffer + (sizeof(char) * strlen(CREATE_DB));
+	   if (!is_valid_column(tmp))
+		    return META_COMMAND_FAILED;
+	   return insert_database_to_state(state, tmp) ? META_COMMAND_SUCCESS: META_COMMAND_FAILED;
     }
 
     else

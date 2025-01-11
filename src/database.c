@@ -262,7 +262,6 @@ db_query *_parse_select_query_cond(db_table *dbtable, char *cols, char *cond) {
 
 db_query *parse_select_query(database *db, char *sql_query) {
     char *str = trim_whitespace(sql_query);
-    bool valid_parsing = false;
     remove_spaces(str, true);
     char *cols_name = get_from_clause(str, SELECT_CLAUSE, FROM_CLAUSE);
     if (cols_name == NULL)
