@@ -57,37 +57,52 @@ void close_input_buffer(InputBuffer *input_buffer) {
     free(input_buffer);
 }
 
-bool insert_database_to_state(app_state *state, char *name) {
-	database *db = new_database(name);
-	if (db == NULL)
-		return false;
-	if (state->database_size >= state->database_capacity) {
-		char *sdbname = NULL;
-		if (state->selected_db != NULL) {
-			sdbname = strdup(state->selected_db->name);
-			if (sdbname == NULL) {
-				free(db);
-				return false;
-			}
-		}
+bool insert_table_to_state(app_state *state, db_table *table) {
+    if (table == NULL)
+	return false;
+    db_table **tmp =
+	realloc(state->selected_db->tables,
+		sizeof(db_table *) * (state->selected_db->table_size + 1));
+    if (tmp == NULL)
+	return false;
+    state->selected_db->tables = tmp;
+    state->selected_db->tables[state->selected_db->table_size++] = table;
+    return true;
+}
 
-		void *tmp = realloc(state->databases, (state->database_capacity * 2) * sizeof(database*));
-		if (tmp == NULL) {
-			if (sdbname != NULL)
-				free(sdbname);
-			free(db);
-			return false;
-		}
-		state->databases = tmp;
-		state->database_capacity = state->database_capacity * 2;
-		for(size_t i = 0; sdbname != NULL && i < state->database_size; i++) {
-			if (strcmp(sdbname, state->databases[i]->name) == 0) {
-				state->selected_db = state->databases[i];
-			}
-		}
+bool insert_database_to_state(app_state *state, char *name) {
+    database *db = new_database(name);
+    if (db == NULL)
+	return false;
+    if (state->database_size >= state->database_capacity) {
+	char *sdbname = NULL;
+	if (state->selected_db != NULL) {
+	    sdbname = strdup(state->selected_db->name);
+	    if (sdbname == NULL) {
+		free(db);
+		return false;
+	    }
 	}
-	state->databases[state->database_size++] = db;
-	return true;
+
+	void *tmp = realloc(state->databases, (state->database_capacity * 2) *
+						  sizeof(database *));
+	if (tmp == NULL) {
+	    if (sdbname != NULL)
+		free(sdbname);
+	    free(db);
+	    return false;
+	}
+	state->databases = tmp;
+	state->database_capacity = state->database_capacity * 2;
+	for (size_t i = 0; sdbname != NULL && i < state->database_size; i++) {
+	    if (strcmp(sdbname, state->databases[i]->name) == 0)
+		state->selected_db = state->databases[i];
+	}
+	if (sdbname != NULL)
+	    free(sdbname);
+    }
+    state->databases[state->database_size++] = db;
+    return true;
 }
 
 MetaCommandResult do_meta_command(InputBuffer *input_buffer, app_state *state) {
@@ -97,8 +112,15 @@ MetaCommandResult do_meta_command(InputBuffer *input_buffer, app_state *state) {
     } else if (strcmp(input_buffer->buffer, LIST_META) == 0) {
 	if (state == NULL)
 	    return META_COMMAND_SUCCESS;
-	for (size_t i = 0; i < state->database_size; i++)
-	    printf("[%s]\n", state->databases[i]->name);
+	for (size_t i = 0; i < state->database_size; i++) {
+	    for (size_t a = 0; a < state->databases[i]->table_size; a++) {
+		for (size_t b = 0; b < state->databases[i]->tables[a]->col_size;
+		     b++)
+		    printf("[%s]:[%s]:[%s]\n", state->databases[i]->name,
+			   state->databases[i]->tables[a]->name,
+			   state->databases[i]->tables[a]->cols[b]->name);
+	    }
+	}
 	return META_COMMAND_SUCCESS;
     } else if (strncmp(input_buffer->buffer, USE_META, strlen(USE_META)) == 0) {
 	char *tmp =
@@ -121,15 +143,17 @@ MetaCommandResult do_meta_command(InputBuffer *input_buffer, app_state *state) {
 	}
 	db_table *table = parse_table_definition(
 	    input_buffer->buffer + (sizeof(char) * strlen(CREATE_TABLE)));
-	printf("table pointer =%p\n", table);
 	if (table == NULL)
 	    return META_COMMAND_FAILED;
-	return META_COMMAND_SUCCESS;
-    } else if (strncmp(input_buffer->buffer, CREATE_DB, strlen(CREATE_DB)) == 0) {
-	    char *tmp = input_buffer->buffer + (sizeof(char) * strlen(CREATE_DB));
-	   if (!is_valid_column(tmp))
-		    return META_COMMAND_FAILED;
-	   return insert_database_to_state(state, tmp) ? META_COMMAND_SUCCESS: META_COMMAND_FAILED;
+	return insert_table_to_state(state, table) ? META_COMMAND_SUCCESS
+						   : META_COMMAND_FAILED;
+    } else if (strncmp(input_buffer->buffer, CREATE_DB, strlen(CREATE_DB)) ==
+	       0) {
+	char *tmp = input_buffer->buffer + (sizeof(char) * strlen(CREATE_DB));
+	if (!is_valid_column(tmp))
+	    return META_COMMAND_FAILED;
+	return insert_database_to_state(state, tmp) ? META_COMMAND_SUCCESS
+						    : META_COMMAND_FAILED;
     }
 
     else
