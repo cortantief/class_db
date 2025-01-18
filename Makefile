@@ -1,6 +1,6 @@
 # Define compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -I src/headers -D_GNU_SOURCE -g
+CFLAGS = -Wall -Wextra -I src/headers -D_GNU_SOURCE -lm -g
 
 # Directories
 SRC_DIR = src

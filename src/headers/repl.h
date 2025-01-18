@@ -32,5 +32,5 @@ typedef struct {
 } app_state;
 
 void repl(void);
-
+app_state *new_app_state();
 #endif

@@ -46,6 +46,8 @@ void _print_header_with(db_table *table, db_search_query **qcol) {
     _print_horizontal_line_with(qcol);
 }
 void _print_header_without(db_table *table, db_col_index **qcol) {
+    if (*qcol == NULL)
+	return;
     _print_horizontal_line_without(qcol);
     for (int i = 0; qcol[i] != NULL; i++) {
 	printf("| %-*s", MAX_COLUMN_WIDTH - 1,

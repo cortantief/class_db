@@ -346,6 +346,7 @@ db_col_index **get_cols_index(db_table *table, char *cols) {
     size_t coli = 0;
     do {
 	bool already_present = false;
+	bool found = false;
 	for (size_t i = 0; i < table->col_size; i++) {
 	    if (strcmp(col, table->cols[i]->name) == 0) {
 		for (size_t a = 0; a < coli; a++) {
@@ -363,10 +364,17 @@ db_col_index **get_cols_index(db_table *table, char *cols) {
 		    free(cols_index);
 		    return NULL;
 		}
+		found = true;
 		cols_index[coli]->index = i;
 		cols_index[coli]->type = table->cols[i]->type;
 		coli++;
 	    }
+	}
+	if (!found && !already_present) {
+	    for (size_t b = 0; b < coli; b++)
+		free(cols_index[b]);
+	    free(cols_index);
+	    return NULL;
 	}
     } while ((col = strtok(NULL, DELIMITER)) != NULL);
     free(columns);

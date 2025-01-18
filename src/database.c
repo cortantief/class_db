@@ -309,7 +309,6 @@ int exec_select_query(database *db, char *sql) {
 	free(cols);
 	free(str);
 	free(table);
-	free_database(db);
 	return 1;
     }
     char *cond = get_from_clause(str, WHERE_CLAUSE, NULL);
@@ -338,57 +337,9 @@ int exec_select_query(database *db, char *sql) {
     for (size_t i = 0; z != NULL && z[i] != NULL; i++)
 	free(z[i]);
     free(z);
-    // free(c);
-    free_database(db);
     return 0;
 }
 
-/*char **extract_all_values(const char *query) {
-    if (!query)
-	return NULL;
-    size_t capacity = 5;
-    size_t len = 0;
-    char **values = malloc(sizeof(char *) * capacity);
-    if (values == NULL)
-	return NULL;
-
-    char *values_start = strchr(query, '(');
-    if (!values_start)
-	goto error_handling;
-
-    while (values_start) {
-	char *values_end = strchr(values_start, ')');
-	if (!values_end)
-	    goto error_handling;
-
-	size_t length = values_end - values_start - 1;
-	values[len] = malloc(sizeof(char) * (length + 1));
-	if (values[len] == NULL)
-	    goto error_handling;
-	strncpy(values[len], values_start + 1, length);
-	values[len][length] = '\0';
-	len++;
-	if (len >= capacity) {
-	    char **new_ptr = realloc(values, (capacity = capacity * 2));
-	    if (new_ptr == NULL) {
-		for (size_t i = 0; i < len; i++)
-		    free(values[i]);
-		free(values);
-		return NULL;
-	    }
-	    values = new_ptr;
-	}
-	values_start = strchr(values_end, '(');
-    }
-    return values;
-
-error_handling:
-    for (size_t i = 0; i < len; i++)
-	free(values[i]);
-    free(values);
-    return NULL;
-}
-*/
 size_t count_part(char *str) {
     size_t counter = 0;
     bool in_quote = false;
@@ -581,20 +532,30 @@ union coldata *create_col_data_from_insert(db_table *dbtable,
 int exec_insert_query(database *db, char *sql) {
     char *str = trim_whitespace(sql);
     int error = 0;
+    char *table_part = NULL;
+    char *table_name = NULL;
+    db_table *dbtable = NULL;
+    char *values_part = NULL;
+    char **values = NULL;
+    db_col_index *cindex = NULL;
+    db_insert **inserts = NULL;
+
     remove_spaces(str, true);
-    char *table_part = get_from_clause(str, INSERT_CLAUSE, VALUES_CLAUSE);
+    table_part = get_from_clause(str, INSERT_CLAUSE, VALUES_CLAUSE);
     if (table_part == NULL)
 	goto error_handling;
-    char *table_name = get_table_name_from_part(table_part);
+    table_name = get_table_name_from_part(table_part);
     if (table_name == NULL)
 	goto error_handling;
-    db_table *dbtable = get_table_by_name(db, table_name);
-    char *values_part = get_from_clause(str, VALUES_CLAUSE, WHERE_CLAUSE);
-    char **values = extract_all_values(values_part);
-    db_col_index *cindex = get_col_index(dbtable, table_part);
+    dbtable = get_table_by_name(db, table_name);
+    values_part = get_from_clause(str, VALUES_CLAUSE, NULL);
+    if (values_part == NULL)
+	goto error_handling;
+    values = extract_all_values(values_part);
+    cindex = get_col_index(dbtable, table_part);
     if (cindex == NULL)
 	goto error_handling;
-    db_insert **inserts = parse_inserts(dbtable, cindex, values);
+    inserts = parse_inserts(dbtable, cindex, values);
     if (inserts == NULL)
 	goto error_handling;
     size_t old_row_size = dbtable->row_size;

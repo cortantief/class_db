@@ -25,4 +25,5 @@ bool insert_col_table(database *db, char *table_name, char *col_name,
 		      enum coltype type);
 int exec_select_query(database *db, char *sql);
 int exec_insert_query(database *db, char *sql);
+bool _insert_data(btree_node *tree, union coldata *data, size_t k); // INTERNAL
 #endif

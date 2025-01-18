@@ -2,6 +2,7 @@
 #include "constants.h"
 #include "database.h"
 #include "parser.h"
+#include "save.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -15,9 +16,12 @@
 #define USE_META ".use "
 #define CREATE_DB ".create_db "
 #define CREATE_TABLE ".create_table "
-#define NEW_DATABASE ""
+#define SAVE_META ".save"
+#define LOAD_META ".load"
 
 // END META_COMMAND DEFINITION
+
+app_state *new_app_state() { return calloc(1, sizeof(app_state)); }
 
 InputBuffer *new_input_buffer() {
     InputBuffer *input_buffer = (InputBuffer *)malloc(sizeof(InputBuffer));
@@ -113,6 +117,7 @@ MetaCommandResult do_meta_command(InputBuffer *input_buffer, app_state *state) {
 	if (state == NULL)
 	    return META_COMMAND_SUCCESS;
 	for (size_t i = 0; i < state->database_size; i++) {
+	    printf("YES\n");
 	    for (size_t a = 0; a < state->databases[i]->table_size; a++) {
 		for (size_t b = 0; b < state->databases[i]->tables[a]->col_size;
 		     b++)
@@ -154,10 +159,11 @@ MetaCommandResult do_meta_command(InputBuffer *input_buffer, app_state *state) {
 	    return META_COMMAND_FAILED;
 	return insert_database_to_state(state, tmp) ? META_COMMAND_SUCCESS
 						    : META_COMMAND_FAILED;
-    }
-
-    else
-
+    } else if (strcmp(input_buffer->buffer, SAVE_META) == 0) {
+	if (!save(state))
+	    return META_COMMAND_FAILED;
+	return META_COMMAND_SUCCESS;
+    } else
 	return META_COMMAND_UNRECOGNIZED_COMMAND;
 }
 
@@ -172,20 +178,25 @@ PrepareResult prepare_statement(InputBuffer *input_buffer,
     if (strncasecmp(input_buffer->buffer, SELECT_CLAUSE,
 		    strlen(SELECT_CLAUSE)) == 0) {
 	statement->type = STATEMENT_SELECT;
+
 	return PREPARE_SUCCESS;
     }
 
     return PREPARE_UNRECOGNIZED_STATEMENT;
 }
 
-void execute_statement(Statement *statement, app_state *state) {
+void execute_statement(Statement *statement, app_state *state,
+		       InputBuffer *input_buffer) {
     if (state->selected_db == NULL)
 	return;
     switch (statement->type) {
     case (STATEMENT_INSERT):
+	exec_insert_query(state->selected_db, input_buffer->buffer);
+
 	// TODO Implement the command here
 	break;
     case (STATEMENT_SELECT):
+	exec_select_query(state->selected_db, input_buffer->buffer);
 	// TODO implement the command here
 	break;
     }
@@ -193,12 +204,10 @@ void execute_statement(Statement *statement, app_state *state) {
 
 void repl(void) {
     InputBuffer *input_buffer = new_input_buffer();
-    app_state state;
-    state.databases = NULL;
-    state.selected_db = NULL;
+    app_state *state = load();
 
     while (true) {
-	print_prompt(state.selected_db);
+	print_prompt(state->selected_db);
 	switch (read_input(input_buffer)) {
 	case READ_SUCCESS:
 	    break;
@@ -210,7 +219,7 @@ void repl(void) {
 	    goto _exit;
 	}
 	if (input_buffer->buffer[0] == '.') {
-	    switch (do_meta_command(input_buffer, &state)) {
+	    switch (do_meta_command(input_buffer, state)) {
 	    case (META_COMMAND_SUCCESS):
 		continue;
 	    case (META_COMMAND_UNRECOGNIZED_COMMAND):
@@ -235,11 +244,12 @@ void repl(void) {
 		    input_buffer->buffer);
 	    continue;
 	}
-	execute_statement(&statement, &state);
+	execute_statement(&statement, state, input_buffer);
 	printf("Executed.\n");
     }
 _exit:
-    for (size_t i = 0; i < state.database_size; i++)
-	free_database(state.databases[i]);
-    free(state.databases);
+    for (size_t i = 0; i < state->database_size; i++)
+	free_database(state->databases[i]);
+    free(state->databases);
+    free(state);
 }
