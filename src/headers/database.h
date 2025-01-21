@@ -18,8 +18,9 @@ bool delete_data_table(database *db, char *table_name, size_t key,
 bool update_data_table(database *db, char *table_name, size_t key,
 		       union coldata *data);
 db_table *get_table_by_name(database *db, char *name);
-bool insert_data_table(database *db, char *table_name, size_t key,
+/*bool insert_data_table(database *db, char *table_name, size_t key,
 		       union coldata *data);
+*/
 database *new_database(char *name);
 bool insert_col_table(database *db, char *table_name, char *col_name,
 		      enum coltype type);

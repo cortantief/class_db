@@ -77,6 +77,7 @@ bool write_header(app_state *state, FILE *file) {
 	database *db = state->databases[dbi];
 	fprintf(file, DATABASE "\n", (size_t)strlen(db->name), db->name);
 	fprintf(file, DATABASE_TABLE_SIZE "\n", db->table_size);
+	printf("DATABAS\n");
 	for (size_t ti = 0; ti < db->table_size; ti++)
 	    write_table(db->tables[ti], file);
     }
@@ -85,11 +86,10 @@ bool write_header(app_state *state, FILE *file) {
 
 bool save(app_state *state) {
     FILE *fptr = fopen(DATABASE_FILE, "w");
-    write_header(state, fptr);
-
-    return true;
+    bool v = write_header(state, fptr);
+    fclose(fptr);
+    return v;
 }
-
 bool load_value(FILE *fptr, db_table *table) {
     union coldata *data = malloc(sizeof(union coldata) * (table->col_size));
     for (size_t i = 0; i < table->col_size; i++) {
@@ -190,7 +190,7 @@ database *load_db(FILE *fptr) {
 }
 
 app_state *load() {
-    FILE *fptr = fopen(TEST_DATABASE_FILE, "r");
+    FILE *fptr = fopen(DATABASE_FILE, "r");
     if (fptr == NULL)
 	return new_app_state();
     app_state *state = calloc(1, sizeof(app_state));

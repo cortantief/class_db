@@ -103,6 +103,7 @@ bool _insert_data(btree_node *tree, union coldata *data, size_t k) {
     if (tree == NULL)
 	return false;
 
+    printf("zed\n");
     tmp = tree;
     while (tmp != NULL) {
 	if (tmp->key == k)
@@ -182,17 +183,9 @@ btree_node *_delete_data(btree_node *root, size_t key, db_col **cols,
     return root;
 }
 
-bool insert_data_table(database *db, char *table_name, size_t key,
-		       union coldata *data) {
-    db_table *table = NULL;
+bool insert_data_table(db_table *table, size_t key, union coldata *data) {
     if (data == NULL)
 	return false;
-    for (size_t i = 0; i < db->table_size; i++) {
-	if (strcmp(table_name, db->tables[i]->name) == 0) {
-	    table = db->tables[i];
-	    break;
-	}
-    }
     if (table == NULL)
 	return false;
     if (table->root != NULL) {
@@ -561,7 +554,7 @@ int exec_insert_query(database *db, char *sql) {
     size_t old_row_size = dbtable->row_size;
     for (size_t i = 0; inserts[i] != NULL; i++) {
 	union coldata *data = create_col_data_from_insert(dbtable, inserts[i]);
-	if (!_insert_data(dbtable->root, data, ++dbtable->row_size)) {
+	if (!insert_data_table(dbtable, dbtable->row_size + 1, data)) {
 	    for (size_t a = old_row_size; a < dbtable->row_size; a++)
 		_delete_data(dbtable->root, a, dbtable->cols,
 			     dbtable->col_size);

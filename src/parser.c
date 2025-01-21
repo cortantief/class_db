@@ -443,9 +443,9 @@ db_col **parse_col(char **cols) {
 	char *type_name = (cols[i] + (sizeof(char) * (endi + 1)));
 	enum coltype type;
 	if (strcasecmp(type_name, INT_TYPE) == 0)
-	    type = STRING;
-	else if (strcasecmp(type_name, STRING_TYPE) == 0)
 	    type = INT;
+	else if (strcasecmp(type_name, STRING_TYPE) == 0)
+	    type = STRING;
 	dbcols[i] = new_col(name, type);
     }
     return dbcols;
