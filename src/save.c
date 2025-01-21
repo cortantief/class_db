@@ -50,7 +50,7 @@ bool write_value(db_table *table, FILE *file, btree_node *node) {
 	    value = calloc(n + 1, sizeof(char));
 	    sprintf(value, "%d", node->data[ci].i32);
 	}
-	fprintf(file, DATABASE_TABLE_VALUE, (size_t)strlen(value), value);
+	fprintf(file, DATABASE_TABLE_VALUE "\n", (size_t)strlen(value), value);
 	if (col->type == INT)
 	    free(value);
     }
